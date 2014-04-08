@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <title>File Explorer</title>
@@ -20,7 +20,11 @@
             </ul>
         </div>
         <div class="row" style="background: #FFF; -webkit-border-radius: 2px; margin: -12px 1px 0px -19px; height: 100%; overflow: auto">
-            <ul style="margin: 5px;" id="content"></ul>
+            <ul style="margin: 5px;" id="content">
+                <li> 打开控制台，点击上方选项进行测试。 </li>
+                <li> 使用Get的方式获取数据时，速度普遍比原生访问慢9倍左右。而且当读取的文件大小超出某一阈值后，文件越大速度越慢 </li>
+                <li> 需要注意的是，IO缓存会大大影响测试结果，不过这也符合通常的应用场景。 </li>
+            </ul>
         </div>
     </div>
 </div>
