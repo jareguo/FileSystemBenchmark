@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Explorer</title>
+    <link href="lib/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <script type="text/javascript" src="lib/jquery-1.11.0.js"></script>
+    <!-- Main -->
+    <script type="text/javascript" src="main.js"></script>
+</head>
+<body>
+<div style="position: absolute; left: 5px; right: 4px; top: 5px; bottom: 0px;">
+    <div style="float: left; position: absolute; left: 18px; right: -1px; top: 0; bottom: 45px;">
+        <div class="row">
+            <ul class="breadcrumb">
+                <li> Tests: </li>
+                <li id="Test1"> <a href='#'> Latency Response </a> <span class="divider"> | </span> </li>
+                <li id="Test2"> <a href='#'> Number of requests </a> <span class="divider"> | </span> </li>
+                <li id="Test3"> <a href='#'> Throughput </a> </li>
+            </ul>
+        </div>
+        <div class="row" style="background: #FFF; -webkit-border-radius: 2px; margin: -12px 1px 0px -19px; height: 100%; overflow: auto">
+            <ul style="margin: 5px;" id="content"></ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>

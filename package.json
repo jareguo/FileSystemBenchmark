@@ -1,0 +1,11 @@
+{
+    "name": "File System Benchmark",
+    "description": "",
+    "version": "",
+    "main": "index.html",
+    "window": {
+        "toolbar": true,
+        "width": 800,
+        "height": 450
+    }
+}
