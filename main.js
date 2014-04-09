@@ -74,6 +74,11 @@ $(document).ready(function () {
             test = startTest('本地随机读取测试(异步, 并发)');
             RandReadTest_Native(randBigDir, function () {
                 test.end();
+
+                test = startTest('http随机读取测试(异步, 并发)');
+                RandReadTest_Http(randBigDir, function () {
+                    test.end();
+                });
             });
         });
     });
@@ -130,7 +135,7 @@ function AddConcurrency(num) {
     console.assert(curConcurrency >= 0);
 }
 
-function statFiles(dir, items, callback) {
+global.statFiles = function (dir, items, callback) {
     var pending = items.length;
     for (var i = 0; i < items.length; ++i) {
         var subPath = path.join(dir, items[i]);
@@ -159,7 +164,7 @@ function statFiles(dir, items, callback) {
 }
 
 function RandReadTest_Native(dir, callback) {
-    var pending = 0;
+    var pending = 0;    // 当前目录下所有子目录和文件读取完才调用callback
     AddConcurrency(1);
     fs.readdir(dir, function (err, items) {
         AddConcurrency(-1);
@@ -167,7 +172,7 @@ function RandReadTest_Native(dir, callback) {
             callback();
             return;
         }
-        statFiles(dir, items, function () {
+        global.statFiles(dir, items, function () {
             //console.log(dir);
             var i = 0;
             var nextLoop = function () {
@@ -232,6 +237,76 @@ function RandReadTest_Native(dir, callback) {
             nextLoop();
         });
     });
+}
+
+function RandReadTest_Http(dir, callback) {
+    var pending = 0;    // 当前目录下所有子目录和文件读取完才调用callback
+    AddConcurrency(1);
+    $.get(global.SERVER_URL + "navigate", { path : dir })
+        .done(function (data) {
+            AddConcurrency(-1);
+            //console.log(dir);
+            var items = data.items;
+            var i = 0;
+            var nextLoop = function () {
+                if (i < items.length && curFileCount > 0) {
+                    var subPath = path.join(dir, items[i].name);
+                    //console.log(subPath);
+                    var type = items[i].type;
+                    ++i;
+                    if (type == "undefined") {
+                        --curFileCount;
+                        nextLoop();
+                        return;
+                    }
+                    else if (type == "folder") {
+                        ++pending;
+                        //console.log('++pending RandReadTest_Native ' + subPath + ' ' + pending);
+                        RandReadTest_Http(subPath, function () {
+                            --pending;
+                            //console.log('--pending RandReadTest_Native ' + subPath + ' ' + pending);
+                            nextLoop();
+                        });
+                    }
+                    else {
+                        ++pending;
+                        //console.log('++pending open ' + subPath + ' ' + pending);
+                        AddConcurrency(1);
+                        $.get(global.SERVER_URL + "open", { path : subPath, length : BYTES_TO_READ })
+                            .done(function (data) {
+                                AddConcurrency(-1);
+                                --pending;
+                                //console.log('--pending closed ' + subPath + ' ' + pending);
+                                if (pending == 0) {
+                                    callback();
+                                }
+                            })
+                            .fail(function () {
+                                console.error('failed to open: ' + subPath);
+                                AddConcurrency(-1);
+                                --pending;
+                                if (pending == 0) {
+                                    callback();
+                                }
+                            });
+                        --curFileCount
+                        nextLoop(); // we dont wait for async finished
+                    }
+                }
+                else {
+                    if (pending == 0) {
+                        //console.log('pending == 0 ' + dir);
+                        callback();
+                    }
+                }
+            }
+            nextLoop();
+        })
+        .fail(function () {
+            console.error('failed to browse: ' + dir);
+            AddConcurrency(-1);
+            callback();
+        });
 }
 
 // 客户端和服务端是异步通讯，但服务端采用同步方法，并发数只有一个
