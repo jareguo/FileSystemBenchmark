@@ -121,11 +121,13 @@ function RandReadTest_NativeSync(dir) {
     }
 }
 
+// stat total concurrency
 function AddConcurrency(num) {
     curConcurrency += num;
     if (curConcurrency > maxConcurrency) {
         maxConcurrency = curConcurrency;
     }
+    console.assert(curConcurrency >= 0);
 }
 
 function statFiles(dir, items, callback) {
@@ -151,9 +153,13 @@ function statFiles(dir, items, callback) {
             };
         }(i));
     }
+    if (pending == 0) {
+        callback();
+    }
 }
 
 function RandReadTest_Native(dir, callback) {
+    var pending = 0;
     AddConcurrency(1);
     fs.readdir(dir, function (err, items) {
         AddConcurrency(-1);
@@ -165,9 +171,9 @@ function RandReadTest_Native(dir, callback) {
             //console.log(dir);
             var i = 0;
             var nextLoop = function () {
-                console.log(curFileCount);
                 if (i < items.length && curFileCount > 0) {
                     var subPath = path.join(dir, items[i].name);
+                    //console.log(subPath);
                     var type = items[i].type;
                     ++i;
                     if (type == "undefined") {
@@ -176,15 +182,26 @@ function RandReadTest_Native(dir, callback) {
                         return;
                     }
                     else if (type == "folder") {
-                        RandReadTest_Native(subPath, nextLoop);
+                        ++pending;
+                        //console.log('++pending RandReadTest_Native ' + subPath + ' ' + pending);
+                        RandReadTest_Native(subPath, function () {
+                            --pending;
+                            //console.log('--pending RandReadTest_Native ' + subPath + ' ' + pending);
+                            nextLoop();
+                        });
                     }
                     else {
+                        ++pending;
+                        //console.log('++pending open ' + subPath + ' ' + pending);
                         AddConcurrency(1);
                         fs.open(subPath, "rs", 0666, function (err, fd) {
                             if (err) {
                                 console.log(err);
                                 AddConcurrency(-1);
-                                --curFileCount; // curFileCount应该是访问前就减掉，回掉时判断是否还有在并发
+                                --pending;
+                                if (pending == 0) {
+                                    callback();
+                                }
                                 return;
                             }
                             var buffer = new Buffer(BYTES_TO_READ);
@@ -192,16 +209,24 @@ function RandReadTest_Native(dir, callback) {
                             fs.read(fd, buffer, 0, BYTES_TO_READ, null, function (err, bytesRead, buffer) {
                                 console.assert(!err);
                                 fs.close(fd, function () {
-                                    --curFileCount;
                                     AddConcurrency(-1);
+                                    --pending;
+                                    //console.log('--pending closed ' + subPath + ' ' + pending);
+                                    if (pending == 0) {
+                                        callback();
+                                    }
                                 });
                             });
                         });
+                        --curFileCount
                         nextLoop(); // we dont wait for async finished
                     }
                 }
                 else {
-                    callback();
+                    if (pending == 0) {
+                        //console.log('pending == 0 ' + dir);
+                        callback();
+                    }
                 }
             }
             nextLoop();
