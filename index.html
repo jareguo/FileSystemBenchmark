@@ -13,17 +13,27 @@
     <div style="float: left; position: absolute; left: 18px; right: -1px; top: 0; bottom: 45px;">
         <div class="row">
             <ul class="breadcrumb">
-                <li> Tests: </li>
-                <li id="Test1"> <a href='#'> Latency Response </a> <span class="divider"> | </span> </li>
+                <li> 结果将输出到Console </li>
+                <!-- <li> Tests: </li>
                 <li id="Test2"> <a href='#'> Number of requests </a> <span class="divider"> | </span> </li>
-                <li id="Test3"> <a href='#'> Throughput </a> </li>
+                <li id="Test3"> <a href='#'> Throughput </a> </li> -->
             </ul>
         </div>
         <div class="row" style="background: #FFF; -webkit-border-radius: 2px; margin: -12px 1px 0px -19px; height: 100%; overflow: auto">
+            <ul style="margin: 5px;" id="option">
+                <li> Dir: <input id="Dir" type="text"/></li>
+                <li> Max File Count: <input id="FileCount" type="text"/></li>
+                <li> Max Read Bytes: <input id="ByteCount" type="text"/></li>
+                <li> <input id="NoReadData" type="checkbox" /> 只查找文件列表，不读取内容 </li>
+                <li> <input id="Test1" type="button" value="本地随机读取测试(同步, 无并发)" /> </li>
+                <li> <input id="Test2" type="button" value="http随机读取测试(同步, 无并发)" /> </li>
+                <li> <input id="Test3" type="button" value="本地随机读取测试(异步, 并发)" /> </li>
+                <li> <input id="Test4" type="button" value="http随机读取测试(异步, 并发)" /> </li>
+            </ul>
+            <hr />
             <ul style="margin: 5px;" id="content">
-                <li> 打开控制台，点击上方选项进行测试。 </li>
-                <li> 使用Get的方式获取数据时，速度普遍比原生访问慢9倍左右。而且当读取的文件大小超出某一阈值后，文件越大速度越慢 </li>
-                <li> 需要注意的是，IO缓存会大大影响测试结果，不过这也符合通常的应用场景。 </li>
+                <li> 使用Get的方式读取数据时，速度普遍比原生访问慢一个数量级。而且当读取的文件大小超出某一阈值后，文件越大速度越慢。使用异步并发加载普遍会快一些。 </li>
+                <li> 需要注意的是，系统及硬盘本身的IO缓存会大大影响测试结果，不过这也符合一般的应用场景。 </li>
             </ul>
         </div>
     </div>
