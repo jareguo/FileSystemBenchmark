@@ -8,6 +8,7 @@ global.SERVER_URL = 'http://localhost:8888/';
 
 var FILE_COUNT = 1000;
 var BYTES_TO_READ = 512;
+global.buffer = Buffer;
 
 if (process.platform == 'win32') {
     var TEST_DIR = 'D:\\K';
@@ -40,6 +41,7 @@ function startTest(testName) {
     console.log('测试中...');
     curConcurrency = 0;
     maxConcurrency = 1;
+    global.buffer = new Buffer(BYTES_TO_READ);
 
     console.time(testName);
     return {
@@ -141,9 +143,8 @@ function RandReadTest_NativeSync(dir) {
                     fs.closeSync(fd);
                     continue;
                 }
-                var buffer = new Buffer(BYTES_TO_READ);
-                buffer.fill(0);
-                fs.readSync(fd, buffer, 0, BYTES_TO_READ);    
+                global.buffer.fill(0);
+                fs.readSync(fd, global.buffer, 0, BYTES_TO_READ);    
                 fs.closeSync(fd);
             }
         }
@@ -170,9 +171,11 @@ global.statFiles = function (dir, items, callback) {
                 items[i2] = { name : items[i2] };
                 if (err) {
                     items[i2].type = "undefined";
+                    items[i2].size = 0;
                 }
                 else {
                     items[i2].type = (stat.isDirectory() ? "folder" : "file");
+                    items[i2].size = stat.size;
                 }
                 --pending;
                 //console.log(pending);
@@ -204,6 +207,7 @@ function RandReadTest_Native(dir, callback) {
                     var subPath = path.join(dir, items[i].name);
                     //console.log(subPath);
                     var type = items[i].type;
+                    var size = items[i].size;
                     ++i;
                     if (type == "folder") {
                         ++pending;
@@ -228,19 +232,25 @@ function RandReadTest_Native(dir, callback) {
                                 }
                                 return;
                             }
-                            var buffer = new Buffer(BYTES_TO_READ);
+                            var length = Math.max(1, Math.min(size, BYTES_TO_READ));
+                            var buffer = new Buffer(length);
                             buffer.fill(0);
-                            fs.read(fd, buffer, 0, BYTES_TO_READ, null, function (err, bytesRead, buffer) {
-                                console.assert(!err);
-                                fs.close(fd, function () {
-                                    AddConcurrency(-1);
-                                    --pending;
-                                    //console.log('--pending closed ' + subPath + ' ' + pending);
-                                    if (pending == 0) {
-                                        callback();
-                                    }
+                            //try {
+                                fs.read(fd, buffer, 0, length, null, function (err, bytesRead, buffer) {
+                                    console.assert(!err);
+                                    fs.close(fd, function () {
+                                        AddConcurrency(-1);
+                                        --pending;
+                                        //console.log('--pending closed ' + subPath + ' ' + pending);
+                                        if (pending == 0) {
+                                            callback();
+                                        }
+                                    });
                                 });
-                            });
+                            //}
+                            //catch (e) {
+                            //    console.log('path ' + subPath + ' length ' + length + ' size ' + size);
+                            //}
                         });
                         --curFileCount
                         nextLoop(); // we dont wait for async finished
@@ -276,6 +286,7 @@ function RandReadTest_Http(dir, callback) {
                     var subPath = path.join(dir, items[i].name);
                     //console.log(subPath);
                     var type = items[i].type;
+                    var size = items[i].size;
                     ++i;
                     if (type == "folder") {
                         ++pending;
@@ -290,7 +301,7 @@ function RandReadTest_Http(dir, callback) {
                         ++pending;
                         //console.log('++pending open ' + subPath + ' ' + pending);
                         AddConcurrency(1);
-                        $.get(global.SERVER_URL + "open", { path : subPath, length : BYTES_TO_READ })
+                        $.get(global.SERVER_URL + "open", { path : subPath, length : Math.max(1, Math.min(size, BYTES_TO_READ)) })
                             .done(function (data) {
                                 AddConcurrency(-1);
                                 --pending;
